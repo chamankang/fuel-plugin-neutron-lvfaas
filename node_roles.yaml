@@ -1,0 +1,17 @@
+network:
+  # Role name
+  name: "Network"
+  # Role description
+  description: "Neutron lbaas, vpnaas agents run on the Network node. Neuron l3 agent runs as dvr_snat mode on this node, due to the vpnaas requirement."
+  conflicts: [controller, compute]
+  limits:
+    min: 1
+  # If primary then during orchestration this role will be
+  # separated into primary-role and role
+  has_primary: false
+  # Assign public IP to node if true
+  public_ip_required: false
+  public_for_dvr_required: true
+  # Weight that will be used to sort out the
+  # roles on the Fuel web UI
+  weight: 1000

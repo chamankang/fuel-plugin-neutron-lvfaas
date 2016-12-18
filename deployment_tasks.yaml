@@ -1,0 +1,114 @@
+# These tasks will be merged into deployment graph. Here you
+# can specify new tasks for any roles, even built-in ones.
+
+- id: network
+  type: group
+  role: [network]
+  tasks:
+    - hiera
+    - setup_repositories
+    - fuel_pkgs
+    - globals
+    - logging
+    - tools
+    - netconfig
+    - firewall
+    - hosts
+    - openstack-network-common-config
+    - openstack-network-plugins-l2
+    - lvfaas-openstack-network-agents-l3
+  required_for: [deploy_end]
+  requires: [deploy_start, primary-controller]
+  parameters:
+    strategy:
+      type: parallel
+
+- id: configure_default_route
+  type: puppet
+  version: 2.0.0
+  role: [primary-mongo, mongo, compute, compute-vmware, ceph-osd, cinder, cinder-vmware, network]
+  requires: [post_deployment_start]
+  required_for: [post_deployment_end]
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/netconfig/configure_default_route.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 3600
+    cwd: /
+
+- id: lvfaas-openstack-network-agents-l3
+  type: puppet
+  version: 2.0.0              # tasks v2.0.0 is supporting task-based deployment
+  role: [network]
+  requires: [deploy_start]
+  required_for: [deploy_end]
+  parameters:
+    puppet_manifest: puppet/manifests/l3.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
+- id: neutron-lbaas-controller
+  version: 2.0.0
+  type: puppet
+  role: [controller, primary-controller]
+  requires: [post_deployment_start]
+  required_for: [post_deployment_end]
+  parameters:
+    puppet_manifest: puppet/manifests/lbaas-controller.pp
+    puppet_modules: puppet/modules:/etc/puppet/modules
+    timeout: 360
+
+- id: neutron-lbaas-network
+  version: 2.0.0
+  type: puppet
+  role: [network]
+  requires: [post_deployment_start]
+  required_for: [post_deployment_end]
+  parameters:
+    puppet_manifest: puppet/manifests/lbaas-network.pp
+    puppet_modules: puppet/modules:/etc/puppet/modules
+    timeout: 360
+
+- id: neutron-vpnaas-controller
+  version: 2.0.0
+  type: puppet
+  role: [controller]
+  requires: [post_deployment_start]
+  required_for: [post_deployment_end]
+  parameters:
+    puppet_manifest: puppet/manifests/vpnaas-controller.pp
+    puppet_modules: puppet/modules:/etc/puppet/modules
+    timeout: 720
+
+- id: neutron-vpnaas-primary-controller
+  version: 2.0.0
+  type: puppet
+  role: [primary-controller]
+  requires: [post_deployment_start]
+  required_for: [post_deployment_end]
+  parameters:
+    puppet_manifest: puppet/manifests/vpnaas-primary-controller.pp
+    puppet_modules: puppet/modules:/etc/puppet/modules
+    timeout: 720
+
+- id: neutron-vpnaas-network
+  version: 2.0.0
+  type: puppet
+  role: [network]
+  requires: [neutron-lbaas-network]
+  required_for: [neutron-fwaas]
+  parameters:
+    puppet_manifest: puppet/manifests/vpnaas-network.pp
+    puppet_modules: puppet/modules:/etc/puppet/modules
+    timeout: 720
+
+- id: neutron-fwaas
+  version: 2.0.0
+  type: puppet
+  role: [controller, primary-controller, compute, network]
+  requires: [post_deployment_start]
+  required_for: [post_deployment_end]
+  parameters:
+    puppet_manifest: puppet/manifests/fwaas.pp
+    puppet_modules: puppet/modules:/etc/puppet/modules
+    timeout: 720
+
