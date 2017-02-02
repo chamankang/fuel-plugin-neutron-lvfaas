@@ -104,7 +104,7 @@
 - id: neutron-fwaas
   version: 2.0.0
   type: puppet
-  role: [controller, primary-controller, compute, network]
+  role: [controller, primary-controller, network]
   requires: [post_deployment_start]
   required_for: [post_deployment_end]
   parameters:
@@ -112,3 +112,14 @@
     puppet_modules: puppet/modules:/etc/puppet/modules
     timeout: 720
 
+- id: neutron-fwaas-compute
+  version: 2.0.0
+  type: puppet
+  role: [compute]
+  condition: "neutron_advanced_configuration.neutron_dvr.value == true"
+  requires: [neutron-fwaas]
+  required_for: [post_deployment_end]
+  parameters:
+    puppet_manifest: puppet/manifests/fwaas.pp
+    puppet_modules: puppet/modules:/etc/puppet/modules
+    timeout: 720
